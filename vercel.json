@@ -20,10 +20,5 @@
             "source": "/(.*)",
             "destination": "/index.php"
         }
-    ],
-    "functions": {
-        "api/**/*.php": {
-            "runtime": "php@8.3.11"
-        }
-    }
+    ]
 }
