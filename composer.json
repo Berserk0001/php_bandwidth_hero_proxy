@@ -1,0 +1,48 @@
+{
+    "name": "berserk0001/php_bandwidth_hero_proxy",
+    "description": "A PHP proxy for compressing images and handling HTTP requests",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "František Štainer",
+            "homepage": "https://github.com/staifa"
+        },
+        {
+            "name": "Berserk0001",
+            "homepage": "https://github.com/Berserk0001"
+        }
+    ],
+    "require": {
+        "php": ">=8.3.11",
+        "ext-curl": "*",
+        "ext-gd": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "staifa\\php_bandwidth_hero_proxy\\": ""
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "php -r \"echo 'Composer installed successfully!';\""
+        ],
+        "start": [
+            "php index.php"
+        ],
+        "test": [
+            "phpunit"
+        ]
+    },
+    "config": {
+        "platform": {
+            "php": "8.3.11"
+        }
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/Berserk0001/php_bandwidth_hero_proxy"
+        }
+    ]
+}
