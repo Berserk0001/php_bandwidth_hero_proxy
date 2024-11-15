@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Install Composer dependencies
-composer install --no-interaction --prefer-dist --optimize-autoloader
-
-# Copy files to the output directory (if needed)
-cp -r . ./public
+# Install Composer if not already installed
+if ! command -v composer &> /dev/null; then
+    echo "Composer not found. Installing Composer..."
+    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    php -r "if (hash_file('sha384', 'composer-setup.php') === 'e21205b2077ef9b1f295f13
