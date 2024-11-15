@@ -3,8 +3,8 @@
     "name": "vercel-bhero-test",
     "builds": [
         {
-            "src": "build.sh",
-            "use": "@vercel/static-build"
+            "src": "index.php",
+            "use": "vercel-php@8.3"
         }
     ],
     "routes": [
