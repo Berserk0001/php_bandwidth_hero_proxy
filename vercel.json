@@ -3,7 +3,7 @@
     "name": "vercel-bhero-test",
     "builds": [
         {
-            "src": "index.php",
+            "src": "build.sh",
             "use": "@vercel/static-build"
         }
     ],
