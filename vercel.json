@@ -1,13 +1,15 @@
 {
-  "functions": {
-    "/index.php": {
-      "runtime": "vercel-php@0.6.1"
-    }
-  },
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.php"
-    }
-  ]
+    "version": 2,
+    "name": "vercel-bhero-test",
+    "functions": {
+        "index.php": {
+            "runtime": "vercel-php@0.6.1"
+        }
+    },
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "/index.php"
+        }
+    ]
 }
