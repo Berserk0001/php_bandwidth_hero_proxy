@@ -2,20 +2,18 @@
 
 namespace staifa\php_bandwidth_hero_proxy\router;
 
-function route()
-{
-    return function ($ctx) {
-        extract($ctx["config"], EXTR_REFS);
-        extract($ctx["http"], EXTR_REFS);
+use staifa\php_bandwidth_hero_proxy\proxy;
 
-        if ($route == "/") {
-            return $ctx;
-        }
-        if ($route == "/favicon.ico") {
-            $http_response_code(204);
-            ob_clean();
-            echo null;
-        };
-        return false;
+function route($config)
+{
+    $uri = $config["request_uri"];
+    $route = ($pos = strpos($uri, "?")) ? substr($uri, 0, $pos) : $uri;
+    if ($route == "/") {
+        return proxy\send_request($config);
+    }
+    if ($route == "/favicon.ico") {
+        http_response_code(204);
+        ob_clean();
+        echo null;
     };
 };

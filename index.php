@@ -26,11 +26,26 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL);
 
-include_once("main.php");
+include_once("auth.php");
 include_once("config.php");
+include_once("proxy.php");
+include_once("redirect.php");
+include_once("router.php");
+require_once("validation.php");
+require_once("util.php");
 
+use staifa\php_bandwidth_hero_proxy\auth;
 use staifa\php_bandwidth_hero_proxy\config;
 
-use function staifa\php_bandwidth_hero_proxy\main\run;
+$config = config\create();
 
-run(config\create());
+if (!$config["target_url"] && $config["request_uri"] == "/") {
+    echo "bandwidth-hero-proxy";
+    return false;
+} else {
+    if (is_array($config["target_url"])) {
+        $config["target_url"] = join("&url=", $config["target_url"]);
+    };
+
+    auth\start($config);
+};

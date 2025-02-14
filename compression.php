@@ -2,44 +2,34 @@
 
 namespace staifa\php_bandwidth_hero_proxy\compression;
 
-// Image compression
-function process_image()
+function process_image($config, $data, $request_headers, $response_headers)
 {
-    return function ($ctx) {
-        extract($ctx["config"], EXTR_REFS);
-        extract($request_headers, EXTR_REFS);
-        extract($response, EXTR_REFS);
-        extract($ctx["http"], EXTR_REFS);
-        extract($ctx["image"], EXTR_REFS);
+    $format = $config["webp"] ? "webp" : "jpeg";
+    $inst = imagecreatefromstring($data);
+    $quality = $config["quality"];
 
-        $format = $webp ? "webp" : "jpeg";
-        $inst = $i_create($data);
-
-        $ctx["instances"] += ["image" => $inst];
-
-        if ($origin_type == "image/png" || "image/gif") {
-            $i_palette($inst);
-        };
-        if ($greyscale) {
-            $i_filter($inst, IMG_FILTER_GRAYSCALE);
-        };
-
-        ob_start();
-
-        ($format == "webp") ? $i_webp($inst, null, $quality) : $i_jpeg($inst, null, $quality);
-        $converted_image = ob_get_contents();
-        ob_end_clean();
-        $i_destroy($inst);
-
-        array_walk($headers, fn ($v, $k) => $set_header($k . ": " . $v));
-
-        $size = strlen($converted_image);
-        $set_header("content-length: " . $size);
-        $set_header("content-type: image/" . $format);
-        $set_header("x-original-size: " . $origin_size);
-        $set_header("x-bytes-saved: " . $origin_size - $size);
-
-        echo $converted_image;
-        return $ctx;
+    if ($request_headers["origin_type"] == "image/png" || "image/gif") {
+        imagepalettetotruecolor($inst);
     };
+    if ($config["greyscale"]) {
+        imagefilter($inst, IMG_FILTER_GRAYSCALE);
+    };
+
+    ob_start();
+
+    ($format == "webp") ? imagewebp($inst, null, $quality) : imagejpeg($inst, null, $quality);
+    $converted_image = ob_get_contents();
+    $headers = array_merge($response_headers, ["content-encoding" => "identity"]);
+    ob_end_clean();
+    imagedestroy($inst);
+
+    array_walk($headers, fn ($v, $k) => header($k . ": " . $v));
+
+    $size = strlen($converted_image);
+    header("content-length: " . $size);
+    header("content-type: image/" . $format);
+    header("x-original-size: " . $request_headers["origin_size"]);
+    header("x-bytes-saved: " . $request_headers["origin_size"] - $size);
+
+    echo $converted_image;
 };
