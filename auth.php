@@ -2,22 +2,20 @@
 
 namespace staifa\php_bandwidth_hero_proxy\auth;
 
-// Basic auth
-function authenticate()
+use staifa\php_bandwidth_hero_proxy\router;
+
+function start($config)
 {
-    return function ($ctx) {
-        extract($ctx["config"], EXTR_REFS);
-        extract($ctx["http"], EXTR_REFS);
-
-        if ($request["PHP_AUTH_USER"] == $auth_user
-          && $request["PHP_AUTH_PW"] == $auth_password
-          && array_reduce([$auth_password, $auth_user, $request["PHP_AUTH_USER"], $request["PHP_AUTH_PW"]], fn ($v) => isset($v))) {
-            return $ctx;
-        };
-
-        $set_header("WWW-Authenticate: Basic realm=\"Bandwidth-Hero Compression Service\"");
-        $set_status(401);
-        ob_clean();
-        echo "Access denied";
+    $user = $config["auth_user"];
+    $pwd = $config["auth_password"];
+    if ($_SERVER["PHP_AUTH_USER"] == $user
+      && $_SERVER["PHP_AUTH_PW"] == $pwd
+      && array_reduce([$pwd, $user, $_SERVER["PHP_AUTH_USER"], $_SERVER["PHP_AUTH_PW"]], fn ($v) => isset($v))) {
+        return router\route($config);
     };
+
+    header("WWW-Authenticate: Basic realm=\"Bandwidth-Hero Compression Service\"");
+    http_response_code(401);
+    ob_clean();
+    echo "Access denied";
 };

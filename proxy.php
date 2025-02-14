@@ -2,61 +2,80 @@
 
 namespace staifa\php_bandwidth_hero_proxy\proxy;
 
+use staifa\php_bandwidth_hero_proxy\validation;
+
 use function staifa\php_bandwidth_hero_proxy\util\doto;
 use function staifa\php_bandwidth_hero_proxy\redirect\redirect;
 
-// Sends a GET request to given target URL
-// This function is used in main flow control
-function send_request()
+function request_opts($request_headers, &$response_headers, $target_url)
 {
-    return function ($ctx) {
-        extract($ctx["config"], EXTR_REFS);
-        extract($ctx["http"], EXTR_REFS);
+    return [
+      CURLOPT_HTTPHEADER => $request_headers,
+      CURLOPT_URL => $target_url,
+      CURLOPT_FOLLOWLOCATION => true,
+      /*CURLOPT_CONNECTTIMEOUT => 10,*/
+      CURLOPT_MAXREDIRS => 5,
+      CURLOPT_SSL_VERIFYPEER => 0,
+      CURLOPT_RETURNTRANSFER => 1,
+      CURLOPT_FAILONERROR => 1,
+      CURLOPT_HEADERFUNCTION => function ($curl, $header) use (&$response_headers) {
+          $len = strlen($header);
+          $header = explode(":", $header, 2);
+          if (count($header) < 2) { // ignore invalid headers
+              return $len;
+          }
+          $response_headers[strtolower(trim($header[0]))] = trim($header[1]);
+          return $len;
+      }
+    ];
+}
 
-        $error_msg = null;
-        $response_headers = [];
-        $request_headers = [
-          "x-forwarded-for" => $request["HTTP_X_FORWARDED_FOR"] || $request["REMOTE_ADDR"] || $request["SERVER_ADDR"],
-          "cookie" => $request["HTTP_COOKIE"],
-          "dnt" => $request["HTTP_DNT"],
-          "referer" => $request["HTTP_REFERER"],
-          "user-agent" => "Bandwidth-Hero Compressor",
-          "via" => "1.1 bandwidth-hero",
-          "content-encoding" => "gzip"
-        ];
+function send_request($config)
+{
+    $error_msg = null;
+    $response_headers = [];
+    $request_headers = [
+      "x-forwarded-for" => $_SERVER["HTTP_X_FORWARDED_FOR"] || $_SERVER["REMOTE_ADDR"] || $_SERVER["SERVER_ADDR"],
+      "cookie" => $_SERVER["HTTP_COOKIE"],
+      "dnt" => $_SERVER["HTTP_DNT"],
+      "referer" => $_SERVER["HTTP_REFERER"],
+      "user-agent" => "Bandwidth-Hero Compressor",
+      "via" => "1.1 bandwidth-hero",
+      "content-encoding" => "gzip"
+    ];
 
-        $ch = $c_init();
-        $ctx["instances"] += ["http" => $ch];
-        doto(
-            fn ($c, $o, $v) => $c_set($c, $o, $v),
-            $ch,
-            $request_opts($request_headers, $response_headers, $target_url)
-        );
-        $data = $c_exec($ch);
-        $status = $c_info($ch, CURLINFO_HTTP_CODE);
+    $ch = curl_init();
+    doto(
+        fn ($c, $o, $v) => curl_setopt($c, $o, $v),
+        $ch,
+        request_opts($request_headers, $response_headers, $config["target_url"])
+    );
+    $data = curl_exec($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-        $ctx["config"] += [
-          "response" => [
-            "data" => $data,
-            "status" => $status,
-            "headers" => array_merge($response_headers, ["content-encoding" => "identity"])
-          ],
-          "request_headers" => array_merge(
-              $request_headers,
-              ["origin_type" => $response_headers["content-type"] ?? '',
-         "origin_size" => strlen($data)]
-          )
-        ];
-
-        if ($c_err_no($ch)) {
-            $error_msg = $c_err($ch);
-        }
-        $c_close($ch);
-        if ($error_msg || $status >= 400) {
-            redirect($ctx);
-            return false;
-        }
-
-        return $ctx;
+    if ($status >= 300 && $status < 400) {
+        http_response_code($status);
+        $location = preg_replace('(https?:)', '', $response_headers["location"]);
+        header('location: ' . $location);
+        return false;
     };
+
+    $response_headers = array_merge($response_headers, ["content-encoding" => "identity"]);
+    $headers = array_merge(
+        $request_headers,
+        ["origin_type" => $response_headers["content-type"] ?? '',
+           "origin_size" => strlen($data)]
+    );
+
+    if (curl_errno($ch)) {
+        $error_msg = curl_error($ch);
+    };
+    curl_close($ch);
+
+    if ($error_msg || $status >= 300) {
+        redirect($config);
+        return false;
+    };
+
+    return validation\should_compress($config, $data, $headers, $response_headers);
 };
